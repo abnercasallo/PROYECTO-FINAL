@@ -1,0 +1,193 @@
+---
+title: "¿Cómo reaccionan las familias en la educación de los niños ante situciones difíciles?"
+subtitle: "Un análisis exploratorio"
+author: "Abner Francisco Casallo Trauco"
+date: "`r Sys.Date()`"
+output: tint::tintHtml
+bibliography: skeleton.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+library(tint)
+# invalidate cache when the package version changes
+knitr::opts_chunk$set(tidy = FALSE, cache.extra = packageVersion('tint'))
+options(htmltools.dir.version = FALSE)
+```
+<div style="text-align: justify">
+
+# Sobre la fuente de la base de datos:INEI
+El Instituto Nacional de Estadística e Informática (INEI) es el Organo Rector de los Sistemas Nacionales de Estadística e Informática en el Perú. En la presente investigación se usará el módulo de ***"Características de vivineda y del hogar"*** de la ***Encuesta Nacional Especializada de Trabajo Infantil-2015***. Nos centraremos en analizar la información de la respuesta de las familias ante situaciones difíciles, haciéndo énfasis en la educación del menor así como el ingreso al mercado laboral. Es importante señalar hay otros dos módulos que brindan información relevante, los cuales podrán ser usados para ampliar el alcance de nuestras conclusiones.
+
+```{r fig-nocap-margin-first, fig.width=40, fig.height=40, cache=TRUE,echo=FALSE,message=FALSE,comment=FALSE,warning=FALSE}
+
+url <- "https://4.bp.blogspot.com/-hYZPf1SftN8/WHVbgem-35I/AAAAAAAAIIw/eNzaEnQeBfM8RZ560bWAVSzRkRy4eLAigCLcB/s1600/inei.jpg"
+
+```
+
+<img src="`r url`" height="200px" width="300px" > 
+
+```{r mis-configuraciones-iniciales, fig.margin=TRUE, fig.width=4, fig.height=4, cache=TRUE, echo=FALSE,message=FALSE,comment=FALSE,warning=FALSE}
+
+library(tidyverse)
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(dplyr)
+library(lubridate)
+library(stringr)
+library(ggalluvial)
+library(parcats)
+library(easyalluvial)
+library(forcats)
+library(DataExplorer)
+library(ggplot2)
+library(haven)
+library(car)
+
+#1.Seteamos y cargamos los datos.
+ setwd("~/GitHub/Proyecto Final2")
+datos<- as.data.frame(read_dta("eti_2015_hogar_vivienda.dta"))
+
+
+#2. Escogemos los datos de interés y omitimos los valores na con na.omit ya que están bastante dispersos.
+
+datos <-  datos %>% select(qhdepartamento,qh_10a17,qh502a,qh502b_1,qh502b_2,qh502b_3,qh502b_4,qh502b_5,qh502b_6,qh502b_7,qh502b_8,qh502b_9,qh616_5,qh617_1,qh617_3,qh617_4,qh617_5)
+datos<-na.omit(datos)
+
+
+
+#Hallamos una suma total de gasto a partir de gastos parciales de la data sumando por filas y seleccionamos.
+
+datos$Gasto_Total=rowSums(datos[3:12], na.rm = TRUE)
+datos <-  datos %>% select(qhdepartamento,qh_10a17,qh502a,qh616_5,qh617_1,qh617_3,qh617_4,Gasto_Total)
+
+
+
+#3. Nombramos
+names(datos) <- c("departamento","mernoes_10_17_anios","gasto_mes_ant_alimentos","abandono_jefe_hogar","recibio_ayuda_degob", "retiro_de_colegio_por_recursos", "incorporacion_del_menor_al_trabajo","Gasto_Total")
+
+
+
+#4. Cambiamos las etiquetas de las variables numéricas para mayor comprensión visual posterior.
+
+datos$abandono_jefe_hogar=factor(datos$abandono_jefe_hogar,levels=(1:2),labels=c("SI","NO"))
+datos$recibio_ayuda_degob=factor(datos$recibio_ayuda_degob,levels=(1:2),labels=c("SI","NO"))
+datos$retiro_de_colegio_por_recursos=factor(datos$retiro_de_colegio_por_recursos,levels=(1:2),labels=c("SI","NO"))
+datos$incorporacion_del_menor_al_trabajo=factor(datos$incorporacion_del_menor_al_trabajo,levels=(1:2),labels=c("SI","NO"))
+
+
+
+
+
+#aseguramos que no queden NA luego de la conversión
+datos<-na.omit(datos)                             #Se observa que los datos se reducen, habían NAs
+
+#datos<- datos[complete.cases(datos3$retiro_de_colegio_por_recursos),] 
+
+```
+
+
+# EL PROBLEMA DE LA DESERCIÓN EDUCATIVA DE ADOLESCENTES EN EL PERÚ
+La deserción educativa es un problema latente en nuestra sociedad. Ya en el 2002, habían voces que planteaban la necesidad de dar prioridad a mecanismos contra la deserción educativa a nivel regional (ESPÍNDOLA, Ernesto:2002). Para el caso peruano, entre las investigaciones que se han desarrollado sobre el tema se encuentra que alguna de ellas ha usado como base de datos el ENAHO (RODRIGUEZ, José. y VARGAS,Silvana: 2008). Sin embargo, también se encuentran investigaciones basadas en la Encuesta de Trabajo Infantil (ETI) del 2007 (PARIGUANA, Marco: 2011).
+
+Actualmente el INEI nos brinda la base de datos del 2015: Encuesta Nacional Especializada de Trabajo Infantil. Esta se realizó en el marco del convenio interinstitucional suscrito entre el Ministerio de Trabajo y Promoción del Empleo (MTPE), la Organización Internacional del Trabajo (OIT) y el Instituto Nacional de Estadística e Informática (INEI) y tuvo un periodo de ejecución del 29 de octubre al 21 de diciembre del 2015, con el objetivo de caracterizar a al trabajo infantil en el Perú, como se indica en su ficha técnica. Nosotros haremos uso de esta encuesta dada que está más actualizada y permite obtener información más detallada sobre algunas variables.
+
+Una advertencia preliminar es que las conclusiones brindadas no son causales, sino unas primeras aproximaciones que nos brinda la información gráfica (explotaria). Un análisis causar requiere un estudio mucho más riguroso que escapa a los fines del presente trabajo.
+
+# ¿LA FAMILIA VE A LA DESERCIÓN EDUCATIVA COMO UNA RESPUESTA ANTE LA REDUCCIÓN DE INGRESOS FAMILIARES?
+
+```{r , echo=FALSE, fig.margin=T, fig.cap="CUESTIONARIO ETI 2015-INEI/Pregunta Base", out.width = '100%',echo=FALSE,message=FALSE,comment=FALSE,warning=FALSE}
+knitr::include_graphics("encuesta1.png")
+```
+Una pregunta que podríamos hacernos es qué tanto las familias valoran la educación de los menores en casa. Si uno revisa el cuestionario de la encuesta citada se pregunta si la familia ha tenido alguna dificultad que haya disminuido los ingresos del hogar (tales como pérdida de empleo, muerte de quienes trabajaban, etc). En caso de que haya existido este problema, se pregunta, entre otras cosas, si el retio del colegio de los menores fue una salida por falta de ingresos.La respuesta por una amplia mayoría es que no. 
+
+```{r , echo=FALSE, fig.margin=T, fig.cap="CUESTIONARIO ETI 2015-INEI/Pregunta Subordinada", out.width = '100%',echo=FALSE,message=FALSE,comment=FALSE,warning=FALSE}
+knitr::include_graphics("encuesta_parte2.png")
+```
+
+Esto nos conduce a al menos dos hipótesis:1. Que las familias valoran bastante la educación de los hijos y evitan en la medida de lo posible la deserción aún teniendo dificultades económicas transitorias, 2. Que la educación en el Perú es lo suficientemente accesible (no cara), por lo que una persona no se ve forzada a retirar a su hijo del colegio ante dificultades económicas. Una tercera opción es que sean ambas cosas. Una respuesta concluyente requiere mayor profundidad, pero sea una u otra cosa la información brindada es bastante positiva. Asimismo, se puede reflexionar sobre el problema de la transitoriedad de la situación, como señalaremos al final.
+
+
+```{r , fig.margin=F, fig.width=80, fig.height=40, cache=TRUE, echo=FALSE,message=FALSE,comment=FALSE,warning=FALSE}
+library(ggplot2)
+
+ggplot(datos, mapping=aes(x =departamento, fill=factor(retiro_de_colegio_por_recursos))) + coord_flip()+ stat_count (width = 0.7) +
+  
+  theme( axis.text = element_text( size = 50 ),
+             axis.text.x = element_text( size = 50),
+             axis.title = element_text( size = 80, face = "bold" ),
+             title=element_text( size =100, face = "bold" ),
+             legend.text=element_text(size=80)) + labs(title = "Retiro del colegio por falta de recursos ",                                    subtitle = "                                                                       A nivel de región",
+           caption = "Fuente: INEI",
+           x="Región", y="Cantidad de estudiantes",fill="¿Retiro del colegio ante una reducción 
+           de ingresos familiares?") 
+
+
+```
+
+Un caso más detallado podría ser el de retiro cuando hay abandono del hogar como mostramos a continuación.
+
+
+```{r , fig.margin=F, fig.width=80, fig.height=40, cache=TRUE, echo=FALSE,message=FALSE,comment=FALSE,warning=FALSE}
+library(ggplot2)
+
+ggplot(datos, mapping=aes(x =abandono_jefe_hogar, fill=factor(retiro_de_colegio_por_recursos)))+ stat_count (width = 0.7) + theme( axis.text = element_text( size = 30 ),
+             axis.text.x = element_text( size = 60 ),
+             axis.title = element_text( size = 80, face = "bold" ),
+             title=element_text( size =100, face = "bold" ),
+             legend.text=element_text(size=80)) + labs(title = " Retiro del colegio por falta de recursos ante abandono ",                                
+           caption = "Fuente: INEI",
+           x="¿Hubo abandono familiar?", y="Cantidad de hoares",fill="¿Retiró a los niños del colegio ante la falta de recursos dado el abandono del jefe de hogar?") 
+
+
+```
+
+¿Y los menores tuvieron que trabajar?
+
+
+```{r , fig.margin=F, fig.width=80, fig.height=40, cache=TRUE, echo=FALSE,message=FALSE,comment=FALSE,warning=FALSE}
+library(ggplot2)
+
+ggplot(datos, mapping=aes(x =departamento, fill=factor(incorporacion_del_menor_al_trabajo)))  + coord_flip() + stat_count (width = 0.7) +
+  
+  theme( axis.text = element_text( size = 50 ),
+             axis.text.x = element_text( size = 50 ),
+             axis.title = element_text( size = 80, face = "bold" ),
+             title=element_text( size =100, face = "bold" ),
+             legend.text=element_text(size=80)) + labs(title = "                                   ¿El menor tuvo que trabajar ante problemas familiares?",                                    subtitle = "                                                                       A nivel de región",
+           caption = "Fuente: INEI",
+           x="Región", y="Cantidad de hogares",fill="¿el menor trabajó ante ante reducción 
+           de ingresos familiares?") 
+
+
+```
+
+Veamos ahora si los menores tuvieron que introducirse al mercado laboral como consecuencia de problemas económicos por el abandono del jefe de hogar. 
+
+```{r , fig.margin=F, fig.width=60, fig.height=40, cache=TRUE, echo=FALSE}
+
+
+ggplot(datos, mapping=aes(x =abandono_jefe_hogar, fill=factor(incorporacion_del_menor_al_trabajo))) + stat_count (width = 0.7) +
+  
+  theme( axis.text = element_text( size = 40),
+             axis.text.x = element_text( size = 50 ),
+             axis.title = element_text( size = 40, face = "bold" ),
+             title=element_text( size =90, face = "bold" ),
+             legend.text=element_text(size=70)) + labs(title = "Trabajo del menor ante falta de recursos por abandono",                                
+           caption = "Fuente: INEI",
+           x="¿Hubo abandono familiar?", y="Cantidad de hogares",fill="¿Retiró a los niños del colegio por falta de recursos por el abandono del jefe de hogar?") 
+
+
+```
+
+# PALABRAS FINALES: EL PROBLEMA DE LA TRANSITORIEDAD O PERMANENCIA 
+
+En estas líneas hemos desarrollado un análisis explotario del módulo de hogar y vivienda de la Encuesta Nacional Especializada de Trabajo Infantil, haciéndo énfasis en la respuesta de las familias ante falta de recursos por diversas situaciones. En este sentido, los resultados están lejos de establecer alguna relación causal. Entre los aspectos, que guardan especial relevancia, es que ante problemas de recursos por diversos motivos (abandono, muerte de quienes aportaban dinero a la familia, etc) los hogares no suelen privar de estudio a sus hijos ni insertarlos al mercado de trabajo. Ahora bien, estas situaciones pueden ser vistas como meramente transitorias en algunos casos. Es decir, que el hogar pudo recuperar su estatus patrimonial lo cual no forzó a introducir al menor al mercado laboral o hacer que este se retire del colegio. 
+
+Esto último es importante pues una expectativa razonable es que los estudiantes dejen el colegio y se vean forzado a trabajar por falta de recursos. Sin embargo, la información analizada nos dice que no fue así en determinadas situaciones. En efecto, el punto de si el deterioro de la situación patrimonial es transitorio o permanente está lejos de ser algo superficial. Si el cambio es transitorio y los miembros del hogar esperan que sea así, lo más probable es que no se vean forzados a hacer que los menores trabajen. Sin embargo, si se espera que el cambio sea permanente, la situación podría cambiar, en tanto que la familia espera un deterioro duradero de su situación, se podría ver forzada a planificar en función a esto, sacrificando la educación de los menores por ingresos que estos podrían conseguir en el mercado laboral (principalmente informal). 
+
+Ahora bien un análisis que confirme o desestime esto requiere un estudio mucho más riguroso y de carácter causal. Sin embargo, la información exploratoria encontrada de por sí ya es interesante para realizar futuras hipótesis de pruebas.
+
+En 
